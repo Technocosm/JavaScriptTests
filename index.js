@@ -77,7 +77,18 @@ function parseSubmission(sub){
     charIndex = sub.indexOf("day") - 2;
   }
 
-  const number = Number(sub.charAt(charIndex));
+  //Find char that contains number to read
+  const numChr1 = sub.charAt(charIndex - 1);
+  //We include the space before to account for double digits
+  const numChr2 = sub.charAt(charIndex);
+
+  //Add small Digit
+  let number = Number(numChr2);
+  //Check for Double Digits
+  if(numChr1 != '>')
+  {
+    number += (Number(numChr1) * 10);
+  }
   return number * sMult;
 }
 
