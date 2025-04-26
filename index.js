@@ -1,6 +1,8 @@
 // EDIT THIS FILE TO COMPLETE ASSIGNMENT QUESTION 1
 const { chromium } = require("playwright");
 
+const url = "https://news.ycombinator.com/newest";
+
 async function sortHackerNewsArticles() {
   // launch browser
   const browser = await chromium.launch({ headless: false });
@@ -8,34 +10,30 @@ async function sortHackerNewsArticles() {
   const page = await context.newPage();
 
   // go to Hacker News
-  await page.goto("https://news.ycombinator.com/newest");
+  await page.goto(url);
 }
 
 (async () => {
   await sortHackerNewsArticles();
 
   //Begin Validation:
+  //const html = (await (await fetch(url)).text()); // html as text
+  //const doc = chromium.doc.parseFromString(html, 'text/html');
+  //doc.title; doc.body;
 
-  //Get all submissions
-  const json =
-  fetch("https://news.ycombinator.com/newest")              //Fetch from URL
-  .then(response =>                                         //(We don't have the html)
-    {
-      if(response.ok)                                       //Error Check
-      {
-        return response.json();                             //Return Result on Success
-      }
-      else
-      {
-        throw new Error('Response not ok');                 //Failstate
-      }
-    })
-  .catch(error => console.error("Error fetching!", error)); //Log Error
-  
-  //Extract Submissions from Json
-  const submissions = json.getElementsByClassName("athing submission");
+  //Extract Json from Url
+  /*fetch("https://news.ycombinator.com/newest")
+  .then(response => response.blob())
+  .then(blob => {
+    console.log(blob)
+    const html = new Document(blob);
+    const html = new File([blob], "html", {type : blob.type})
+    console.log(html)
+  }
+  );*/
 
   //We were only asked to validate the first 100, so filter those out.
   const validateSize = 100;
-  submissions = submissions.slice(0, validateSize);
+  //const submissions = chromium.doc.getElementsByClassName("athing submission");
+  //const recentSubmssions = subsmissions.slice(0, validateSize);
 })();
