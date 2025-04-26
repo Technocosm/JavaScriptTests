@@ -11,12 +11,21 @@ async function sortHackerNewsArticles() {
 
   // go to Hacker News
   await page.goto(url);
+  const html = await page.content();
+  console.log(html);
+
+  //Tests
+  //works:
+  //await page.click("id=43806657");
+  //doesn't:
+  //await page.click("tr");
 }
 
 (async () => {
   await sortHackerNewsArticles();
 
   //Begin Validation:
+
   //const html = (await (await fetch(url)).text()); // html as text
   //const doc = chromium.doc.parseFromString(html, 'text/html');
   //doc.title; doc.body;
@@ -33,7 +42,8 @@ async function sortHackerNewsArticles() {
   );*/
 
   //We were only asked to validate the first 100, so filter those out.
-  const validateSize = 100;
+  //const validateSize = 100;
+  //const submissions = document.getElementsByClassName("athing submission");
   //const submissions = chromium.doc.getElementsByClassName("athing submission");
   //const recentSubmssions = subsmissions.slice(0, validateSize);
 })();
