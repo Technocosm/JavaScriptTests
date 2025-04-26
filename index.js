@@ -9,6 +9,7 @@ const submissionsToDo = 100;
 const submissionsOnPage = 30;
 //When we parse the html, the first element in the array will be discarded, so add 1.
 const arraySize = submissionsOnPage + 1;
+const subAge = [];
 //Convert all time into seconds
 const minuteSec = 60;
 const hourSec = minuteSec * 60;
@@ -39,7 +40,6 @@ async function sortHackerNewsArticles() {
 
 function parseHTMLString(htmlStr) {
   const submissions = htmlStr.split("athing submission", arraySize);
-  let subAge[submissionMax];
 
   //Ignore the first element of the array, as it won't be a submission to be checked
   for(let i = 1; i < arraySize; ++i)
