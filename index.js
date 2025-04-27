@@ -9,7 +9,10 @@ const submissionsToDo = 100;
 const submissionsOnPage = 30;
 //When we parse the html, the first element in the array will be discarded, so add 1.
 const arraySize = submissionsOnPage + 1;
+//Age of submissions
 const subAge = [];
+
+
 //Convert all time into seconds
 const minuteSec = 60;
 const hourSec = minuteSec * 60;
@@ -28,59 +31,83 @@ async function sortHackerNewsArticles() {
   // go to Hacker News
   await page.goto(url);
   
-  const htmlStr = await page.content();
-  parseHTMLString(htmlStr);
+  //==========
 
-  //Tests
-  //works:
-  //await page.click("id=43806657");
-  //doesn't:
-  //await page.click("tr");
+  let submissionsCounted = 0;
+  while(submissionsCounted < submissionsToDo)
+  {
+    //skip on first loop
+    if(submissionsCounted > 0)
+    {
+      //Click "More" to load next page - More is located using XPath
+      await page.locator('xpath=//*[@id="hnmain"]/tbody/tr[3]/td/table/tbody/tr[92]/td[2]/a').click();
+      //From what I read this is a last resort, but from inspecting element I see no id, label,
+      //role title, or even identifiable text to filter it out with ("More" can occur in news titles)
+      //Only potential alternative is it may be possible to get the table it belongs to, and chain
+      //further filters from there to find it, but I'm unsure how that would work.
+    }
+
+    const numCheck =  //Calculate the number of submissions to check for this page
+    (submissionsCounted + submissionsOnPage) < submissionsToDo
+    ?                 //If there are 30 or more left to do, do the full page
+    submissionsOnPage : 
+    submissionsToDo - submissionsCounted; //If not, only do the amount left
+
+    const htmlStr = await page.content();                   //Get the html of the page as a string
+    parseHTMLString(htmlStr, numCheck, submissionsCounted); //And Parse it for submissions to check
+
+    //Add to counter
+    submissionsCounted += numCheck;
+  }
+
+  RunValidationCheck();
 }
 
-function parseHTMLString(htmlStr) {
+function parseHTMLString(htmlStr, numberToCheck, indexFrom) {
+  //Split html string by submissions (first element will be non-submission)
   const submissions = htmlStr.split("athing submission", arraySize);
 
-  //Ignore the first element of the array, as it won't be a submission to be checked
-  for(let i = 1; i < arraySize; ++i)
+  //Ignore the first element of the array, since it won't be a submission
+  for(let i = 1; i < numberToCheck + 1; ++i)
   {
-    //Parse each submission for time posted
-    subAge[i - 1] = parseSubmission(submissions[i]);  
-    console.log("Post #" + i + ": " + subAge[i-1]);
+    //Parse each submission for time posted. amd record it into subAge
+    subAge[indexFrom + (i - 1)] = parseSubmission(submissions[i]);  
+    console.log("Post #" + (indexFrom + i) + ": " + subAge[indexFrom + (i - 1)]);
   }
 }
 
 function parseSubmission(sub){
   //Amount to multiply to get value in seconds for how long ago posted
   let sMult = 0;
-  //Index of the character that will tell us how many seconds/minutes/hours/days ago
+  //Index of the character that will tell us how many minutes/hours/days ago
   let charIndex = 0;
 
-  if(sub.includes("second"))
-  {
-    sMult = 1;
-    charIndex = sub.indexOf("second") - 2;
-  }
-  else if (sub.includes("minute"))
+  //Split text at the subline to ensure we don't accidentally pull from the title
+  const subSplit = sub.split("class=\"subline\"");
+  //Use the subline half of the text, not the title half
+  const subTime = subSplit[1];
+
+  //Find Measurement of Time used
+  if (subTime.includes("minute"))
   {
     sMult = minuteSec;
-    charIndex = sub.indexOf("minute") - 2;
+    charIndex = subTime.indexOf("minute") - 2;
   }
-  else if (sub.includes("hour"))
+  else if (subTime.includes("hour"))
   {
     sMult = hourSec;
-    charIndex = sub.indexOf("hour") - 2;
+    charIndex = subTime.indexOf("hour") - 2;
   }
-  else if (sub.includes("day"))
+  else if (subTime.includes("day"))
   {
     sMult = daySec;
-    charIndex = sub.indexOf("day") - 2;
+    charIndex = subTime.indexOf("day") - 2;
   }
 
   //Find char that contains number to read
-  const numChr1 = sub.charAt(charIndex - 1);
+  const numChr1 = subTime.charAt(charIndex - 1);
   //We include the space before to account for double digits
-  const numChr2 = sub.charAt(charIndex);
+  const numChr2 = subTime.charAt(charIndex);
 
   //Add small Digit
   let number = Number(numChr2);
@@ -89,32 +116,41 @@ function parseSubmission(sub){
   {
     number += (Number(numChr1) * 10);
   }
+  //Return time in seconds (so multiply it up if it was given in mins/hrs/days)
   return number * sMult;
+}
+
+function RunValidationCheck()
+{
+  let validationSuccessful = true;
+  let loop = true;
+  let loopCount = 0;
+
+  //iterate through the 100 posts
+  while (loop)
+  {
+    if(subAge[loopCount] > subAge[loopCount + 1]) //If one is found to break the order...
+    {
+      loop = false;                               //Cancel the rest of the checks
+      validationSuccessful = false;               //And flag the validation failed
+    }
+    else
+    {
+      ++loopCount;                                //Otherwise, conitnue on until the end of the array
+      loop = loopCount < (submissionsToDo - 1) ? true : false;
+    }
+  }
+
+  if(validationSuccessful)
+  {
+    console.log("First 100 posts are sorted correctly from newest to oldest.");
+  }
+  else
+  {
+    console.log("Validation failed! Check Post #" + loopCount + "for inconsistencies.");
+  }
 }
 
 (async () => {
   await sortHackerNewsArticles();
-
-  //Begin Validation:
-
-  //const html = (await (await fetch(url)).text()); // html as text
-  //const doc = chromium.doc.parseFromString(html, 'text/html');
-  //doc.title; doc.body;
-
-  //Extract Json from Url
-  /*fetch("https://news.ycombinator.com/newest")
-  .then(response => response.blob())
-  .then(blob => {
-    console.log(blob)
-    const html = new Document(blob);
-    const html = new File([blob], "html", {type : blob.type})
-    console.log(html)
-  }
-  );*/
-
-  //We were only asked to validate the first 100, so filter those out.
-  //const validateSize = 100;
-  //const submissions = document.getElementsByClassName("athing submission");
-  //const submissions = chromium.doc.getElementsByClassName("athing submission");
-  //const recentSubmssions = subsmissions.slice(0, validateSize);
 })();
